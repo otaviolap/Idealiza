@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { ThemeToggle } from '../../components/ThemeToggle';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,9 +11,14 @@ export default function Login() {
   if (isAuthenticated) {
     navigate('/');
   }
+  
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [formData, setFormData] = useState({
+    name: '',
     email: 'teste@email.com',
     password: '123456',
+    confirmPassword: '',
     rememberMe: false
   });
 
@@ -31,24 +37,47 @@ export default function Login() {
     setIsLoading(true);
     setError('');
     
-    // Verificar credenciais específicas
-    if (formData.email === VALID_CREDENTIALS.email && formData.password === VALID_CREDENTIALS.password) {
-      try {
-        const success = await login(formData.email, formData.password);
-        if (success) {
-          console.log('Login successful:', formData);
-          navigate('/');
-        } else {
+    if (isSignUp) {
+      // Lógica de cadastro
+      if (formData.password !== formData.confirmPassword) {
+        setError('As senhas não coincidem');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (formData.name.trim() === '') {
+        setError('Nome é obrigatório');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Simular cadastro bem-sucedido
+      setTimeout(() => {
+        console.log('Cadastro realizado:', formData);
+        setIsSignUp(false);
+        setError('');
+        setIsLoading(false);
+        alert('Cadastro realizado com sucesso! Agora você pode fazer login.');
+      }, 1000);
+    } else {
+      // Lógica de login
+      if (formData.email === VALID_CREDENTIALS.email && formData.password === VALID_CREDENTIALS.password) {
+        try {
+          const success = await login(formData.email, formData.password);
+          if (success) {
+            console.log('Login successful:', formData);
+            navigate('/');
+          } else {
+            setError('Erro na autenticação. Tente novamente.');
+          }
+        } catch (error) {
           setError('Erro na autenticação. Tente novamente.');
         }
-      } catch (error) {
-        setError('Erro na autenticação. Tente novamente.');
+      } else {
+        setError('Email ou senha incorretos. Use: teste@email.com / 123456');
       }
-    } else {
-      setError('Email ou senha incorretos. Use: teste@email.com / 123456');
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,25 +88,41 @@ export default function Login() {
     }));
   };
 
+  const toggleAuthMode = () => {
+    setIsAnimating(true);
+    
+    // Troca o conteúdo apenas quando estiver totalmente escondido (no momento 50% da animação)
+    setTimeout(() => {
+      setIsSignUp(!isSignUp);
+      setError('');
+      setFormData(prev => ({
+        ...prev,
+        name: '',
+        confirmPassword: ''
+      }));
+    }, 400); // Exatamente quando está em translateX(-100%) - totalmente escondido
+    
+    // Remove a classe de animação
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 800); // Duração total da animação
+  };
+
   return (
     <div className="login-container">
+      {/* Header fino */}
+      <div className="login-top-header">
+        <div className="app-name">Idealiza</div>
+        <ThemeToggle />
+      </div>
+      
       <div className="login-split">
-        {/* Left side - Login Form */}
+        {/* Left side - Login/SignUp Form */}
         <div className="login-form-section">
-          <div className="login-form-wrapper">
+          <div className={`login-form-wrapper ${isAnimating ? 'sliding' : ''}`}>
             <div className="login-header">
-              <div className="logo-container">
-                <div className="logo-icon">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span className="logo-text">Idealiza</span>
-              </div>
-              <h1>Bem-vindo de volta</h1>
-              <p>Entre em sua conta para continuar</p>
+              <h1>{isSignUp ? 'Criar conta' : 'Bem-vindo de volta'}</h1>
+              <p>{isSignUp ? 'Junte-se a nós e transforme suas ideias' : 'Entre em sua conta para continuar'}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
@@ -87,6 +132,26 @@ export default function Login() {
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   {error}
+                </div>
+              )}
+              
+              {isSignUp && (
+                <div className="form-group">
+                  <label htmlFor="name">Nome completo</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Seu nome completo"
+                      required
+                    />
+                    <svg className="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                 </div>
               )}
               
@@ -141,33 +206,75 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="form-options">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                  />
-                  <span className="checkmark"></span>
-                  Lembrar de mim
-                </label>
-                <a href="#" className="forgot-password">Esqueceu a senha?</a>
+              {isSignUp && (
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirmar senha</label>
+                  <div className="input-wrapper">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirme sua senha"
+                      required
+                    />
+                    <svg className="input-icon" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Botão Google */}
+              <div className="social-login">
+                <div className="divider">
+                  <span>ou</span>
+                </div>
+                <button type="button" className="google-button">
+                  <svg viewBox="0 0 24 24" className="google-icon">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  {isSignUp ? 'Cadastrar com Google' : 'Entrar com Google'}
+                </button>
               </div>
+
+              {!isSignUp && (
+                <div className="form-options">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      name="rememberMe"
+                      checked={formData.rememberMe}
+                      onChange={handleInputChange}
+                    />
+                    <span className="checkmark"></span>
+                    Lembrar de mim
+                  </label>
+                  <a href="#" className="forgot-password">Esqueceu a senha?</a>
+                </div>
+              )}
 
               <button type="submit" className="login-button" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <span>Entrando...</span>
+                    <span>{isSignUp ? 'Criando conta...' : 'Entrando...'}</span>
                     <svg className="animate-spin" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
                     </svg>
                   </>
                 ) : (
                   <>
-                    <span>Entrar</span>
+                    <span>{isSignUp ? 'Criar conta' : 'Entrar'}</span>
                     <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      {isSignUp ? (
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      ) : (
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      )}
                     </svg>
                   </>
                 )}
@@ -175,12 +282,12 @@ export default function Login() {
             </form>
 
             <div className="login-footer">
-              <div className="demo-info">
-                <p><strong>� Credenciais de Teste:</strong></p>
-                <p><strong>Email:</strong> teste@email.com</p>
-                <p><strong>Senha:</strong> 123456</p>
-              </div>
-              <p>Não tem uma conta? <a href="#" className="signup-link">Cadastre-se</a></p>
+              <p>
+                {isSignUp ? 'Já tem uma conta? ' : 'Não tem uma conta? '}
+                <button onClick={toggleAuthMode} className="signup-link">
+                  {isSignUp ? 'Entrar' : 'Cadastre-se'}
+                </button>
+              </p>
             </div>
           </div>
         </div>
